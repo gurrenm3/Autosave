@@ -18,6 +18,7 @@ namespace Autosave
         public ModSettingInt timeBetweenBackup = new ModSettingInt(30);
         public ModSettingInt maxSavedBackups = new ModSettingInt(10);
 
+        public override string GithubReleaseURL => "https://api.github.com/repos/gurrenm3/BTD6-Autosave/releases";
         public const string currentVersion = "1.0.0";
         public override bool CheatMod => false;
         public static MelonMain instance;
