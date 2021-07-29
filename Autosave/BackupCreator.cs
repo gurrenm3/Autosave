@@ -1,6 +1,4 @@
 ﻿using System.IO;
-using NinjaKiwi.Players.Files;
-using NinjaKiwi.Players.Files.SaveStrategies;
 using System.Linq;
 using Assets.Scripts.Unity;
 using BTD_Mod_Helper.Extensions;
@@ -19,6 +17,12 @@ namespace Autosave
             _maxBackups = maxBackups;
         }
 
+        public void SetMaxBackups(long max) => _maxBackups = max;
+
+        private FileInfo[] GetAllBackups() => new DirectoryInfo(_backupDir).GetFiles();
+
+        private bool IsOverMaxBackups() => GetAllBackups().Length > _maxBackups;
+
         public void CreateBackup()
         {
             MelonLoader.MelonLogger.Msg("Creating Backup...");
@@ -28,11 +32,9 @@ namespace Autosave
             string copyPath = $"{_backupDir}\\Profile_{time}.Save";
             File.Copy(originalPath, copyPath);
 
-            while (ExceededMaxBackups())
+            while (IsOverMaxBackups())
                 DeleteOldestBackup();
         }
-
-        public void SetMaxBackups(long max) => _maxBackups = max;
 
         public void MoveBackupDir(string newBackupDir)
         {
@@ -42,10 +44,6 @@ namespace Autosave
 
             _backupDir = newBackupDir;
         }
-
-        private FileInfo[] GetAllBackups() => new DirectoryInfo(_backupDir).GetFiles();
-
-        private bool ExceededMaxBackups() => GetAllBackups().Length > _maxBackups;
 
         private void DeleteOldestBackup()
         {

@@ -16,7 +16,7 @@ namespace Autosave
         public ModSettingBool openBackupDir = new ModSettingBool(true);
         public ModSettingBool openSaveDir = new ModSettingBool(true);
         public ModSettingString autosavePath = new ModSettingString("");
-        public ModSettingInt timeBetweenBackup = new ModSettingInt(5);
+        public ModSettingInt timeBetweenBackup = new ModSettingInt(30);
         public ModSettingInt maxSavedBackups = new ModSettingInt(10);
 
         public const string currentVersion = "1.0.0";
@@ -31,38 +31,28 @@ namespace Autosave
             MelonLogger.Msg("Mod has finished loading");
         }
 
-        public override void OnUpdate()
-        {
-            if (Game.instance)
-                return;
-
-            if (InGame.instance is null)
-                return;
-        }
-        
         public override void OnMainMenu()
         {
             if (initialized)
                 return;
 
             InitSettings();
-
             backup = new BackupCreator(autosavePath, maxSavedBackups);
-
             ScheduleAutosave();
             initialized = true;
         }
 
-        public override void OnMatchEnd()
-        {
-            backup.CreateBackup();
-        }
+        public override void OnMatchEnd() => backup.CreateBackup();
 
         void InitSettings()
         {
             openBackupDir.IsButton = true;
             openBackupDir.SetName("Open Backup Directory");
-            openBackupDir.OnInitialized.Add((option) => InitOpenBackupButton(option));
+            openBackupDir.OnInitialized.Add((option) => InitOpenDirButton(option, autosavePath));
+
+            openSaveDir.IsButton = true;
+            openSaveDir.SetName("Open Save Directory");
+            openSaveDir.OnInitialized.Add((option) => InitOpenDirButton(option, Game.instance.GetSaveDirectory()));
 
             timeBetweenBackup.SetName("Minutes Between Each Backup");
             maxSavedBackups.SetName("Max Saved Backups");
@@ -83,22 +73,20 @@ namespace Autosave
 
         void ScheduleAutosave()
         {
-            TaskScheduler.ScheduleTask(() => TriggerAutosave(),
-                ScheduleType.WaitForSeconds, timeBetweenBackup);
+            const int secondsPerMinute = 60;
+            TaskScheduler.ScheduleTask(() =>
+            {
+                backup.CreateBackup();
+                ScheduleAutosave();
+            }, 
+            ScheduleType.WaitForSeconds, timeBetweenBackup * secondsPerMinute);
         }
 
-        void TriggerAutosave()
-        {
-            backup.CreateBackup();
-            ScheduleAutosave();
-        }
-
-        void InitOpenBackupButton(SharedOption option)
+        void InitOpenDirButton(SharedOption option, string dir)
         {
             var button = (ButtonOption)option;
             button.ButtonText.text = "Open";
-            button.Button.onClick.AddListener(() => 
-                Process.Start((string)autosavePath.GetValue()));
+            button.Button.onClick.AddListener(() => Process.Start(dir));
         }
     }
 }
